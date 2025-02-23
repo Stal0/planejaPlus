@@ -3,6 +3,8 @@ package com.stal0.planejaPlus.resources;
 import com.stal0.planejaPlus.dto.UserDTO;
 import com.stal0.planejaPlus.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,4 +23,12 @@ public class UserResource {
         UserDTO user = userService.getUserById(id);
         return ResponseEntity.ok().body(user);
     }
+
+    @GetMapping
+    public ResponseEntity<Page<UserDTO>> findAll(Pageable pageable) {
+        Page<UserDTO> page = userService.getAllUsers(pageable);
+        return ResponseEntity.ok().body(page);
+    }
+
+    
 }
