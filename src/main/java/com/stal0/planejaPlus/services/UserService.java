@@ -2,6 +2,7 @@ package com.stal0.planejaPlus.services;
 
 import com.stal0.planejaPlus.dto.UserDTO;
 import com.stal0.planejaPlus.entities.User;
+import com.stal0.planejaPlus.mappers.UserMapper;
 import com.stal0.planejaPlus.repositories.UserRepository;
 import com.stal0.planejaPlus.services.exceptions.DataBaseException;
 import com.stal0.planejaPlus.services.exceptions.ResourceNotFoundException;
@@ -18,47 +19,51 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+
+    public UserService(UserRepository userRepository, UserMapper userMapper) {
+        this.userRepository = userRepository;
+        this.userMapper = userMapper;
+    }
 
     @Transactional(readOnly = true)
     public UserDTO getUserById(long id) {
         Optional<User> user = userRepository.findById(id);
-        return new UserDTO(user.orElseThrow(() -> new ResourceNotFoundException("Entity not found!")));
+        return userMapper.userToDTO(user.orElseThrow(() -> new ResourceNotFoundException("User not found")));
     }
 
     @Transactional(readOnly = true)
     public Page<UserDTO> getAllUsers(Pageable pageable) {
         Page<User> users = userRepository.findAll(pageable);
-        return users.map(x -> new UserDTO(x));
+        return users.map(userMapper::userToDTO);
     }
 
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
         User user = new User();
-        user.setUsername(userDTO.getUsername());
-        user.setEmail(userDTO.getEmail());
+        userMapper.copyDtoToUser(userDTO, user);
         user = userRepository.save(user);
-        return new UserDTO(user);
+        return userMapper.userToDTO(user);
     }
 
     @Transactional
     public UserDTO updateUser(long id, UserDTO userDTO) {
         try {
             User entity = userRepository.getReferenceById(id);
-            copyDtoToEntity(userDTO, entity);
+            userMapper.copyDtoToUser(userDTO, entity);
             entity = userRepository.save(entity);
-            return new UserDTO(entity);
+            return userMapper.userToDTO(entity);
         }
         catch (EntityNotFoundException e) {
-            throw new ResourceNotFoundException("Entity not found!");
+            throw new ResourceNotFoundException("User not found");
         }
     }
 
     @Transactional
     public void deleteUser(long id) {
         if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Entity not found!");
+            throw new ResourceNotFoundException("User not found");
         }
         try {
             userRepository.deleteById(id);
@@ -66,10 +71,5 @@ public class UserService {
         catch (DataIntegrityViolationException e) {
             throw new DataBaseException("Failure of referential integrity");
         }
-    }
-
-    private void copyDtoToEntity(UserDTO userDTO, User entity) {
-        entity.setUsername(userDTO.getUsername());
-        entity.setEmail(userDTO.getEmail());
     }
 }
